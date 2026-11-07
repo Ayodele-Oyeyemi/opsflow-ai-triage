@@ -1,0 +1,414 @@
+{
+  "name": "OpsFlow AI Triage — Intake Webhook Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "opsflow-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4a00-b000-000000000001",
+      "name": "Receive Triage Payload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 340],
+      "webhookId": "opsflow-intake-webhook-id"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-high",
+                    "leftValue": "={{ $json.body.triage.urgencyLevel }}",
+                    "rightValue": "high",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "high"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-medium",
+                    "leftValue": "={{ $json.body.triage.urgencyLevel }}",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "medium"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-low",
+                    "leftValue": "={{ $json.body.triage.urgencyLevel }}",
+                    "rightValue": "low",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "low"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "a1b2c3d4-2222-4a00-b000-000000000002",
+      "name": "Route by Urgency",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [520, 340]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-urgent-channel",
+              "name": "channel",
+              "value": "#opsflow-alerts",
+              "type": "string"
+            },
+            {
+              "id": "set-urgent-message",
+              "name": "message",
+              "value": "=🚨 *URGENT TRIAGE ALERT*\n━━━━━━━━━━━━━━━━━━━━━━━\n👤 *Customer:* {{ $json.body.triage.fields[0].value }}\n📂 *Category:* {{ $json.body.triage.fields[2].value }}\n📊 *Confidence:* {{ $json.body.triage.overallConfidence }}%\n✅ *Status:* {{ $json.body.triage.autoApproved ? 'AUTO-APPROVED' : 'REQUIRES REVIEW' }}\n⚡ *Urgency:* HIGH\n━━━━━━━━━━━━━━━━━━━━━━━\n⏰ _Immediate action required_",
+              "type": "string"
+            },
+            {
+              "id": "set-urgent-urgency",
+              "name": "urgency",
+              "value": "high",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-3333-4a00-b000-000000000003",
+      "name": "Format Urgent Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 140]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-standard-channel",
+              "name": "channel",
+              "value": "#opsflow-alerts",
+              "type": "string"
+            },
+            {
+              "id": "set-standard-message",
+              "name": "message",
+              "value": "=📋 *Standard Triage Notification*\n──────────────────────\n👤 *Customer:* {{ $json.body.triage.fields[0].value }}\n📂 *Category:* {{ $json.body.triage.fields[2].value }}\n📊 *Confidence:* {{ $json.body.triage.overallConfidence }}%\n✅ *Status:* {{ $json.body.triage.autoApproved ? 'AUTO-APPROVED' : 'REQUIRES REVIEW' }}\n⚡ *Urgency:* MEDIUM\n──────────────────────\n📝 _Queued for standard processing_",
+              "type": "string"
+            },
+            {
+              "id": "set-standard-urgency",
+              "name": "urgency",
+              "value": "medium",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-4444-4a00-b000-000000000004",
+      "name": "Format Standard Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 340]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-low-channel",
+              "name": "channel",
+              "value": "#opsflow-alerts",
+              "type": "string"
+            },
+            {
+              "id": "set-low-message",
+              "name": "message",
+              "value": "=📌 *Low Priority Triage*\n──────────────────────\n👤 *Customer:* {{ $json.body.triage.fields[0].value }}\n📂 *Category:* {{ $json.body.triage.fields[2].value }}\n📊 *Confidence:* {{ $json.body.triage.overallConfidence }}%\n✅ *Status:* {{ $json.body.triage.autoApproved ? 'AUTO-APPROVED' : 'REQUIRES REVIEW' }}\n⚡ *Urgency:* LOW\n──────────────────────\n🗂️ _Filed for batch review_",
+              "type": "string"
+            },
+            {
+              "id": "set-low-urgency",
+              "name": "urgency",
+              "value": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-5555-4a00-b000-000000000005",
+      "name": "Format Low Priority",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 540]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#opsflow-alerts",
+          "mode": "name"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "a1b2c3d4-6666-4a00-b000-000000000006",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1060, 340],
+      "credentials": {
+        "slackApi": {
+          "id": "CONFIGURE_YOUR_SLACK_CREDENTIALS",
+          "name": "Slack — Configure Me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "CONFIGURE_YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Customer Name": "={{ $('Receive Triage Payload').item.json.body.triage.fields[0].value }}",
+            "Category": "={{ $('Receive Triage Payload').item.json.body.triage.fields[2].value }}",
+            "Urgency": "={{ $('Receive Triage Payload').item.json.body.triage.urgencyLevel }}",
+            "Confidence": "={{ $('Receive Triage Payload').item.json.body.triage.overallConfidence }}",
+            "Auto-Approved": "={{ $('Receive Triage Payload').item.json.body.triage.autoApproved }}",
+            "Amount": "={{ $('Receive Triage Payload').item.json.body.triage.fields[1].value }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-7777-4a00-b000-000000000007",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1300, 340],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CONFIGURE_YOUR_GOOGLE_CREDENTIALS",
+          "name": "Google Sheets — Configure Me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"received\": true,\n  \"workflow\": \"opsflow-intake\",\n  \"timestamp\": \"{{ $now.toISO() }}\",\n  \"urgency\": \"{{ $('Route by Urgency').item.json.body.triage.urgencyLevel }}\",\n  \"logged\": true\n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "X-OpsFlow-Workflow",
+                "value": "intake-pipeline"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1b2c3d4-8888-4a00-b000-000000000008",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 340]
+    }
+  ],
+  "connections": {
+    "Receive Triage Payload": {
+      "main": [
+        [
+          {
+            "node": "Route by Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Urgency": {
+      "main": [
+        [
+          {
+            "node": "Format Urgent Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Standard Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Low Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Urgent Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Standard Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Low Priority": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "OpsFlow",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "AI Triage",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Webhook",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "opsflow-v1",
+  "meta": {
+    "instanceId": "opsflow-ai-triage-demo-instance",
+    "templateCredsSetupCompleted": false
+  }
+}
