@@ -1,0 +1,1 @@
+{"rewrites":[{"source":"/api/:path*","destination":"https://opsflow-ai-triage.onrender.com/api/:path*"}]}
